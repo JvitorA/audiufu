@@ -11,8 +11,10 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import br.com.auditoria.beans.Product;
+import br.com.auditoria.beans.UserAccount;
 import br.com.auditoria.utils.DBUtils;
 import br.com.auditoria.utils.MyUtils;
 
@@ -28,7 +30,16 @@ public class ProductListServlet extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 		Connection conn = MyUtils.getStoredConnection(request);
-
+		
+		HttpSession session = request.getSession();
+		UserAccount loginedUser = MyUtils.getLoginedUser(session);
+		
+		//Comment for insecurity
+        if (loginedUser == null) {
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
+		
 		String errorString = null;
 		List<Product> list = null;
 		try {
@@ -37,11 +48,10 @@ public class ProductListServlet extends HttpServlet {
 			e.printStackTrace();
 			errorString = e.getMessage();
 		}
-		// Store info in request attribute, before forward to views
+
 		request.setAttribute("errorString", errorString);
 		request.setAttribute("productList", list);
 
-		// Forward to /WEB-INF/views/productListView.jsp
 		RequestDispatcher dispatcher = request.getServletContext()
 				.getRequestDispatcher("/WEB-INF/views/productListView.jsp");
 		dispatcher.forward(request, response);

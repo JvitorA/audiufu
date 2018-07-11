@@ -7,8 +7,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.mysql.jdbc.Statement;
-
 import br.com.auditoria.beans.Product;
 import br.com.auditoria.beans.UserAccount;
 
@@ -16,29 +14,49 @@ public class DBUtils {
 	 
     public static UserAccount findUser(Connection conn, //
             String userName, String password) throws SQLException {
- 
-//        String sql = "Select a.User_Name, a.Password, a.Gender from User_Account a " //
-//                + " where a.User_Name = ? and a.password= ?";
-// 
-//        PreparedStatement pstm = conn.prepareStatement(sql);
-//        pstm.setString(1, userName);
-//        pstm.setString(2, password);
-//        ResultSet rs = pstm.executeQuery();
+    	//Secure
+    	String sqlSalt = "Select a.Salt, a.Password, a.Gender from User_Account a where a.User_Name = ?";
     	
-    	Statement stmt = null;
+    	PreparedStatement pstmsalt = conn.prepareStatement(sqlSalt);
+    	pstmsalt.setString(1, userName);
     	
-    	stmt = (Statement) conn.createStatement();
-    	String query = "Select a.User_Name, a.Password, a.Gender from User_Account a where a.User_name = '" + userName + "' and a.password='" + password + "'";
-        ResultSet rs = stmt.executeQuery(query);
+    	ResultSet rsSalt = pstmsalt.executeQuery();
     	
-    	if (rs.next()) {
-            String gender = rs.getString("Gender");
+    	String salt = null;
+    	String encodedPassword = null;
+    	String genderS = null;
+    	
+    	if (rsSalt.next()) {
+    		salt = rsSalt.getString("Salt");
+    		encodedPassword = rsSalt.getString("Password");
+    		genderS = rsSalt.getString("Gender");
+    	}
+    	
+    	boolean passwordMatch = PasswordUtils.verifyUserPassword(password, encodedPassword, salt);
+    	
+    	if (passwordMatch) {
             UserAccount user = new UserAccount();
             user.setUserName(userName);
             user.setPassword(password);
-            user.setGender(gender);
+            user.setGender(genderS);
             return user;
-        }
+    	}
+    	
+//    	Insecure
+//    	Statement stmt = null;
+//    	
+//    	stmt = (Statement) conn.createStatement();
+//    	String query = "Select a.User_Name, a.Password, a.Gender from User_Account a where a.User_name = '" + userName + "' and a.password='" + password + "'";
+//        ResultSet rs = stmt.executeQuery(query);
+//    	
+//    	if (rs.next()) {
+//            String gender = rs.getString("Gender");
+//            UserAccount user = new UserAccount();
+//            user.setUserName(userName);
+//            user.setPassword(password);
+//            user.setGender(gender);
+//            return user;
+//        }
         return null;
     }
  
@@ -62,6 +80,20 @@ public class DBUtils {
             return user;
         }
         return null;
+    }
+    
+    public static void insertUser(Connection conn, UserAccount user) throws SQLException {
+    	//Secure
+    	String sql = "Insert into User_Account(User_name, Gender, Password, Salt) values (?, ?, ?, ?)";
+    	
+    	PreparedStatement pstm = conn.prepareStatement(sql);
+    	
+    	pstm.setString(1, user.getUserName());
+    	pstm.setString(2, user.getGender());
+    	pstm.setString(3, user.getPassword());
+    	pstm.setString(4, user.getSalt());
+    	
+    	pstm.executeUpdate();
     }
  
     public static List<Product> queryProduct(Connection conn) throws SQLException {

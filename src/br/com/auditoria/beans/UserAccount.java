@@ -8,9 +8,18 @@ public class UserAccount {
 	private String userName;
 	private String gender;
 	private String password;
+	private String salt;
 
 	public UserAccount() {
 
+	}
+	
+	public String getSalt() {
+		return salt;
+	}
+
+	public void setSalt(String salt) {
+		this.salt = salt;
 	}
 
 	public String getUserName() {
